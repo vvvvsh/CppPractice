@@ -22,7 +22,7 @@ int main()
     sockadd.sin_family = AF_INET; //IPv4
     sockadd.sin_port = htons(54000); //Binding to port number
     inet_pton(AF_INET, "0.0.0.0", &sockadd.sin_addr);
-    if(bind(sock, (sockaddr*)&sockadd, sizeof(sockadd) == -1))
+    if(bind(sock, (sockaddr*)&sockadd, sizeof(sockadd)) == -1)
     {
         cerr << "Unable to bind to either IP or port number";
         return -2;
