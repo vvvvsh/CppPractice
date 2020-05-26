@@ -96,7 +96,7 @@ class Threading
 			//{
 			//std::cout << put_time(&t, "%c") << '\n';
 			//}
-			WriteToJson(timestampstr,loglevel,msg,file);
+			WriteToJson(timestampstr,loglevel,msg,file); //Pass by reference
                 	}
 	           }
 		 }
@@ -106,7 +106,7 @@ class Threading
 		  }
 		}
 	
-	void WriteToJson(string timestampstr,string loglevel,string msg, string filename)
+	void writeToJson(string timestampstr,string loglevel,string msg, string filename) //Name
 	{
 	  ofstream outfile;
 	  outfile.open("Outfile.json");
