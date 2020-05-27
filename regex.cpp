@@ -8,32 +8,106 @@ using namespace std;
 
 int main()
 {
-	string str = "skdbflsdbafkjbkjfsdajkf Sun Dec 04 04:47:44 2005 ksdjbfsdhbafjkbsdafb";
-	smatch match;
-	string date_time;
-	regex rx("\\s*(Sun|Mon|Tue|Wed|Thurs|Fri|Sat)\\s(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s([0-9]{1,2})\\s([0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2})\\s([0-9]{2,4})\\s*");
-	if(regex_search(str,match,rx))
-		{
-			//cout << match[1] << endl;
-			//cout << match[2] << endl;
-			//cout << match[3] << endl;
-			//cout << match[4] << endl;
-			//cout << match[5] << endl;
-			//cout << match[4] << " " << match[3] << "-" << match[2] << "-" << match[5] << endl;
-			date_time.append(match[4]).append(" ").append(match[3]).append("-").append(match[2]).append("-").append(match[5]);
-			cout << date_time << endl;
+        string str1 = "skdbflsdbafkjbkjfsdajkf Sun Dec 04 04:47:44 2005 ksdjbfsdhbafjkbsdafb";
+        string str2 = "o1229321 ksjfkewfj 2005-06-03-15.42.50.675872 ldkjsldjfalasljf1249823u498732";
+        string str3 = "ldksmflks  ldskflsda 2017-06-26 02:31:29,573 lsdjflsjaiflj";
+        string str4 = "20171223-22:15:29:606";
+        string str4 = "Mar 16 08:12:04";
+        smatch match;
+        string date_time;
+        const string day("(Sun|Mon|Tue|Wed|Thurs|Fri|Sat)");
+        const string month("(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)");
+        regex timestamprx1("\\s*("+day+"\\s"+month+"\\s[0-9]{1,2}\\s[0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2}\\s[0-9]{2,4})\\s*");
+        regex timestamprx2("([0-9]{2,4}[-][0-9]{1,2}[-][0-9]{1,2}[-][0-9]{1,2}[.][0-9]{1,2}[.][0-9]{1,2}[.][0-9]{1,6})");
+        regex timestamprx3("([0-9]{2,4}[-][0-9]{1,2}[-][0-9]{1,2}\\s[0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2}[,][0-9]{1,3})");
+        regex timestamprx4("([0-9]{1,8}[-][0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,3})");
+        regex timestamprx5("\\s*("+month+"\\s[0-9]{1,2}\\s[0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2})*);
+        if(regex_search(str1,match,timestamprx1))
+                {
+                        cout << "String str1 = " ;
+                        cout << match[1] << endl;
+        }
+        if(regex_search(str2,match,timestamprx2))
+                {
+                        cout << "String str2 = ";
+                        cout << match[1] << endl;
+        }
+        if(regex_search(str3,match,timestamprx3)){
+                        cout << "String str3 = ";
+                        cout << match[1] << endl;
 
-			tm t = {};
-			std::istringstream ss(date_time);
-			//ss.imbue(std::locale("de_DE.utf-8"));
-			// ss >> get_time(&t, "%Y-%b-%d %H:%M:%S");
-			// if (ss.fail()) {
-			//   cout << "Parse failed\n";
-			//} else {
-			//   cout << put_time(&t, "%c") << '\n';
-			// }
-		}
+        }
+        if(regex_search(str4,match,timestamprx4)){
+                        cout << "String str4 = ";
+                        cout << match[1] << endl;
+        }
+        if(regex_search(str5,match,timestamprx5)){
+                        cout << "String str5 = ";
+                        cout << match[1] << endl;
+        }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

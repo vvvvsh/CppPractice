@@ -13,69 +13,88 @@ public :
 const char* configFile = "Lc.conf"; //Camel case
 const char CDELIMITER = '=';
 
-void ParseLogFile(string file){
+void parseLogFile(string file){
 	ifstream inlogfile(file);
-	cout << file.substr(file.find_last_of("/\\")+1) << endl;
+	string readLine;
+	//cout << file.substr(file.find_last_of("/\\")+1) << endl;
 	inlogfile.open(file.substr(file.find_last_of("/\\")+1));
-	if(inlogfile.is_open())
-	{	
-	   string line;
-	   while(inlogfile)
-	   {
-		cout << "Entered While" << endl ;
-	   }
+	if(!inlogfile.is_open()){	
+		cout << "Unable to Open File : " << file << endl;
 	}
-	else
-	{
-	 cout << "Unable to Open File : " << file << endl;
+	else{
+	   string line;
+	   while(getline(inlogfile,readLine)){
+			cout << "Line = " << readLine << endl;
+			//cout << "Entered While logfile : "<< file << endl ;
+		}
 	}
 }
 
 vector<string> getLogFiles(){ //Change Method Name with small letter
 	ifstream config;
-	string buf;
-	config.open(configfile); 
- 	vector<string> linevec;//Change to string
+	string bufLine;
+	config.open(configFile); 
+ 	string logFilesstr;//Change to string
 	vector<string> files;
-    //Get the line and push the tokens to Vector
-	if(config.is_open())
-	{
-	    while (getline(config, buf))
-	    {
-		istringstream ss(buf);
-	        while (getline(ss, buf, CDELIMITER))
-	            linevec.push_back(buf);
+	//Get the line and push the tokens to Vector
+	//cout << "Getting Log Files list... " << endl;
+	if(!config.is_open()){
+	     cout << "Unable to Open File : " << configFile << endl;
+	     exit(EXIT_FAILURE);
+	}
+	else{
+	    while (getline(config, bufLine)){
+		istringstream ss(bufLine);
+		if (bufLine.find('=') == string::npos){
+			cout << "Invalid entry in the  Config File" << endl;
+		}
+		else{
+		while(getline(ss, logFilesstr, CDELIMITER)){}
+		//cout << logFilesstr << endl;
+		}
 	    }
 	    //Split the tokens
-	    for(size_t i=0;i<linevec.size();i++)
-	    {
-		 stringstream logfilestream(linevec[i]);
-		 while(getline(logfilestream, buf, ','))
-		 files.push_back(buf);
-	     }
+	    stringstream logfilestream(logFilesstr);
+	    while(getline(logfilestream, bufLine, ','))
+		files.push_back(bufLine);
 	}
-	else
-	{
-		cout << "Unable to Open File : " << configfile << endl;
-	}
-return files;
+	return files;
 }
 
- };
+};
 
 
 int main()
 {
   PerformParsing pars;
-  vector<string> logfiles = pars.ReadConfigFile(); //Check for Negative scenarios as well,Error Handling
+  vector<string> logfiles = pars.getLogFiles(); //Check for Negative scenarios as well,Error Handling
+  int logFileCount = 0;
   PerformParsing* Parsobj = new PerformParsing();
-  for (size_t i = 0; i < logfiles.size(); i++)
-  {
-       //cout << "Token[" << i << "] = " << logfiles[i] << endl;
+  for (size_t i = 0; i < logfiles.size(); i++){	
 	if(logfiles[i].find(".log") != string::npos){
-        cout << "Parsing Log File :  " << logfiles[i] << endl;
-        thread t1(&PerformParsing::ParseLogFile,Parsobj, logfiles[i]);
-        t1.join(); //Look to wait for threads , Sleep
+		logFileCount ++ ;
+		cout << "Parsing Log File :  " << logfiles[i] << endl;
+		thread t1(&PerformParsing::parseLogFile,Parsobj, logfiles[i]);
+		t1.join(); //Look to wait for threads , Sleep
+		this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
-  }
+	if(logFileCount == 0){
+	       cout << "Warning : No log files present in the Configuration file" << endl;
+	}
+     }
 }
+  //vector<std::thread> threads;
+  //for(int i = 0; i < logfiles.size(); ++i){
+//	cout << "Adding thread for : " << logfiles[i] << endl;
+  //      threads.push_back(thread(&PerformParsing::parseLogFile,Parsobj, logfiles[i]));
+   // }
+
+    //for(auto& thread : threads){
+     //   thread.join();
+//	this_thread::sleep_for(std::chrono::milliseconds(300));
+  //  }
+//}
+  //if(logFileCount == 0){
+    //   cout << "Warning : No log files present in the Configuration file" << endl;
+     //}
+//}
