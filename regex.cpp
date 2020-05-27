@@ -12,7 +12,7 @@ int main()
         string str2 = "o1229321 ksjfkewfj 2005-06-03-15.42.50.675872 ldkjsldjfalasljf1249823u498732";
         string str3 = "ldksmflks  ldskflsda 2017-06-26 02:31:29,573 lsdjflsjaiflj";
         string str4 = "20171223-22:15:29:606";
-        string str4 = "Mar 16 08:12:04";
+       	string str5 = "skdnf Mar 16 08:12:04 lksdf";
         smatch match;
         string date_time;
         const string day("(Sun|Mon|Tue|Wed|Thurs|Fri|Sat)");
@@ -21,7 +21,7 @@ int main()
         regex timestamprx2("([0-9]{2,4}[-][0-9]{1,2}[-][0-9]{1,2}[-][0-9]{1,2}[.][0-9]{1,2}[.][0-9]{1,2}[.][0-9]{1,6})");
         regex timestamprx3("([0-9]{2,4}[-][0-9]{1,2}[-][0-9]{1,2}\\s[0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2}[,][0-9]{1,3})");
         regex timestamprx4("([0-9]{1,8}[-][0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,3})");
-        regex timestamprx5("\\s*("+month+"\\s[0-9]{1,2}\\s[0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2})*);
+	regex timestamprx5("\\s*("+month+"\\s[0-9]{1,2}\\s[0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2})");
         if(regex_search(str1,match,timestamprx1))
                 {
                         cout << "String str1 = " ;
