@@ -8,10 +8,16 @@
 #include <vector>
 #include <exception>
 #include <mutex>
+#include <iomanip>
+#include <chrono>
+
 using namespace std;
+using namespace std::chrono;
 
 const char* configFile = "Lc.conf";
 const char CDELIMITER = '=';
+const char CDELIMITER2 = '.';
+
 const string day("Sun|Mon|Tue|Wed|Thurs|Fri|Sat");
 const string month("Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December");
 const string loglevel("ALERT|DEBUG|TRACE|NOTICE|FATAL|WARN|INFO|SEVERE|CRIT|alert|debug|trace|notice|fatal|warn|info|server|crit");
@@ -22,8 +28,7 @@ ofstream outfile;
 vector<regex> regexvec = {timestamprx1,timestamprx2};
 map<string,regex> regexmap;
 map<string, regex>::iterator regexit; 
-regex fileRegex;
-mutex mmutex;
+
 class PerformParsing{
 public : 
 
@@ -39,10 +44,58 @@ PerformParsing()
 	}
 }
 
+void getMatchingRegex(string *line, regex *fileRegex){
+	smatch match;
+	auto start = high_resolution_clock::now();
+
+	time_t now = time(0);
+	char* dt = ctime(&now);
+
+	//cout << dt <<  ": Retreiving Matching Regex " << endl;
+	for(size_t i=0; i< regexvec.size();i++){
+                      if(regex_search(*line,match,regexvec[i])){
+                               *fileRegex = regexvec[i];
+				//cout << regexvec[i] << endl;
+                      }
+        }
+	auto stop = high_resolution_clock::now(); 
+	auto duration = duration_cast<microseconds>(stop - start); 
+	cout << "Regex search finished " << endl;
+	cout << "Elapsed time : " << duration.count() << " microseconds" << endl; 
+}
+
+void writeToFile(string *line, regex *fileRegex,string *filename){
+	smatch match;
+	if(regex_search(*line,match,*fileRegex)){
+			outfile << "{host:" << "\"" << getenv("HOSTNAME")<< "\", ";
+			outfile << "file-name:" <<"\""<< *filename << "\", ";
+			//convertDateTime(&fileRegex, match);
+			outfile << "Timestamp : " << match[1]  << " ";
+			string str=match[2];
+			if(!str.empty()){
+				outfile << match[2] << " ";
+				outfile << match[3] << ",";
+			}
+			else
+				outfile << ",";
+			if(regex_search(*line,match,loglevelrx)){
+				outfile << "log-level:\"" << match[1] << "\",";
+				outfile << "message:\"" << match[2] << "\"}" << endl;
+			}
+	}
+}
+
+string convertDateTime(regex **fileRegex, smatch match){
+	
+
+
+return "";
+}
+
 void parseLogFile(string file){
-//	mmutex.lock();
 	ifstream inlogfile(file);
 	string readLine;
+	regex fileRegex;	
 	inlogfile.open(file.substr(file.find_last_of("/\\")+1), ios::in);
 	if(!inlogfile.is_open()){	
 		cout << "Unable to Open File : " << file << endl;
@@ -50,51 +103,30 @@ void parseLogFile(string file){
 	else{
 	   streampos gpos = inlogfile.tellg();
 	   smatch match;
-  	  
  	   getline(inlogfile,readLine);
-          // cout << readLine << endl;
-           for(size_t i=0; i< regexvec.size();i++){
-                      if(regex_search(readLine,match,regexvec[i])){
-                                regexmap.insert(pair<string,regex>(file,regexvec[i]));
-                                  // cout << "Regex Matched : " << file << endl;
-                      }
-           }
-           while(true){
-	              if(!getline(inlogfile,readLine) || inlogfile.eof()){
-               		        inlogfile.clear();
-		                inlogfile.seekg(gpos);
-		                std::this_thread::sleep_for(std::chrono::milliseconds(300));
-                	        continue;
-	              }
-	              gpos=inlogfile.tellg();
-        	   //   cout << file << endl;
-		      regexit = regexmap.find(file);
-		      if(regexit == regexmap.end())
-	                     cout << "Regex not found for file : " << file << endl;
-	              else{
-	                       if(regex_search(readLine,match,regexit->second)){
-           		            	//cout << file << endl;
-		                    	std::this_thread::sleep_for(std::chrono::milliseconds(300));
-		                        outfile << "{host : " << getenv("HOSTNAME")<< ", ";
-                	 		outfile << "file-name : " << file << ", ";
-		                        outfile << "Timestamp : " <<  match[1] << " ";
-		                        outfile << match[2] << " ";
-                		        outfile << match[3] << ",";
-	//			        cout << "{host : " << getenv("HOSTNAME")<< ", " <<  "file-name : " << file << ", "  << "Timestamp : " <<  match[1] << " " << match[2] << " "  << match[3] << ",";
-              				if(regex_search(readLine,match,loglevelrx)){
-				  		outfile << "log-level :\"" << match[1] << "\" , ";			    
-						outfile << "message :\"" << match[2] << "\"}" << endl;
-	//			cout << "log-level :\"" << match[1] << "\"" <<  "message :\"" << match[2] << "\"}" << endl;
-					}
-		    		}
-			}
-	     }		
-	  }
+	   //Finding Matching Regex
+	   getMatchingRegex(&readLine, &fileRegex);
+
+	   while(true){
+               	if(!getline(inlogfile,readLine) || inlogfile.eof()){
+                                inlogfile.clear();
+                                inlogfile.seekg(gpos);
+                                std::this_thread::sleep_for(std::chrono::milliseconds(300));
+                                continue;
+                }
+                gpos=inlogfile.tellg();
+
+	   	//Write the output to a file   
+		writeToFile(&readLine, &fileRegex, &file);			
+		break;
+	   } 
+	}
 	inlogfile.close();
-//	mmutex.unlock();
 }
 
-vector<string> getLogFiles(){ //Change Method Name with small letter
+
+
+vector<string> getLogFiles(){
 	ifstream config;
 	string bufLine;
 	config.open(configFile); 
