@@ -21,13 +21,15 @@ const char CDELIMITER2 = '.';
 const string day("Sun|Mon|Tue|Wed|Thurs|Fri|Sat");
 const string month("Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December");
 const string loglevel("ALERT|DEBUG|TRACE|NOTICE|FATAL|WARN|INFO|SEVERE|CRIT|alert|debug|trace|notice|fatal|warn|info|server|crit");
-regex timestamprx1("\\s*("+day+")\\s("+month+")\\s([0-9]{1,2}\\s[0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2}\\s[0-9]{2,4})\\s*");
+
 regex loglevelrx("\\s*("+loglevel+")\\s\\s(.*$)");
-regex timestamprx2("\\s*([0-9]{2,4}[-][0-9]{1,2}[-][0-9]{1,2}[-][0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2}[.][0-9]{1,6})\\s*");
+regex timestamprx1("\\s*([0-9]{2,4}[-][0-9]{1,2}[-][0-9]{1,2}[-][0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2}[.][0-9]{1,6})\\s*");
+regex timestamprx2("\\s*("+day+")\\s("+month+")\\s([0-9]{1,2}\\s[0-9]{1,2}[:][0-9]{1,2}[:][0-9]{1,2}\\s[0-9]{2,4})\\s*");
+
 ofstream outfile;
 vector<regex> regexvec = {timestamprx1,timestamprx2};
-map<string,regex> regexmap;
-map<string, regex>::iterator regexit; 
+map<string,int> dateTimeMap;
+map<string,int>::iterator dateTimeit; 
 
 class PerformParsing{
 public : 
@@ -44,53 +46,148 @@ PerformParsing()
 	}
 }
 
-void getMatchingRegex(string *line, regex *fileRegex){
+void getMatchingRegex(string *file, string *line, regex *fileRegex){
 	smatch match;
-	auto start = high_resolution_clock::now();
+	auto start = std::chrono::high_resolution_clock::now();
 
-	time_t now = time(0);
-	char* dt = ctime(&now);
-
-	//cout << dt <<  ": Retreiving Matching Regex " << endl;
 	for(size_t i=0; i< regexvec.size();i++){
                       if(regex_search(*line,match,regexvec[i])){
                                *fileRegex = regexvec[i];
-				//cout << regexvec[i] << endl;
+				dateTimeMap.insert(pair<string,int>(*file,i+1));
                       }
         }
-	auto stop = high_resolution_clock::now(); 
-	auto duration = duration_cast<microseconds>(stop - start); 
+	auto finish = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> elapsed = finish - start;
 	cout << "Regex search finished " << endl;
-	cout << "Elapsed time : " << duration.count() << " microseconds" << endl; 
+	cout << "Elapsed time : " << elapsed.count() << " milliseconds" << endl; 
 }
 
 void writeToFile(string *line, regex *fileRegex,string *filename){
 	smatch match;
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	
 	if(regex_search(*line,match,*fileRegex)){
 			outfile << "{host:" << "\"" << getenv("HOSTNAME")<< "\", ";
+			cout << "{host:" << "\"" << getenv("HOSTNAME")<< "\", ";
 			outfile << "file-name:" <<"\""<< *filename << "\", ";
-			//convertDateTime(&fileRegex, match);
-			outfile << "Timestamp : " << match[1]  << " ";
-			string str=match[2];
-			if(!str.empty()){
-				outfile << match[2] << " ";
-				outfile << match[3] << ",";
+			cout <<  "file-name:" <<"\""<< *filename << "\", ";
+			dateTimeit = dateTimeMap.find(*filename);
+
+			string timestampstr="";
+			if(dateTimeit == dateTimeMap.end()){
+		                //cout << "No matching Timestamp value found for file :" <<*filename << endl;
+				outfile << "Timestamp:\""<<match[1] << "\",";
+        		}
+			else{
+				timestampstr = match[1];
+				string str=match[2];
+				if(!str.empty()){
+					timestampstr.append(" ").append(match[2]).append(" ").append(match[3]).append(" ");
+				}
+				auto start = std::chrono::high_resolution_clock::now();	
+				outfile << "Timestamp :\"" <<convertDateTime(dateTimeit->second, timestampstr) << "\",";
+				cout <<  "Timestamp:\"" <<convertDateTime(dateTimeit->second, timestampstr) << "\",";
+				auto finish = std::chrono::high_resolution_clock::now();
+				std::chrono::duration<double, std::milli> elapsed = finish - start;
+				//std::cout << "Elapsed Time for datetime Conversion: " << elapsed.count() << " seconds" << std::endl;
+				//std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 			}
-			else
-				outfile << ",";
 			if(regex_search(*line,match,loglevelrx)){
-				outfile << "log-level:\"" << match[1] << "\",";
-				outfile << "message:\"" << match[2] << "\"}" << endl;
+					outfile << "log-level:\"" << match[1] << "\",";
+					cout <<  "log-level:\"" << match[1] << "\",";
+					outfile << "message:\"" << match[2] << "\"}" << endl;
+					cout <<  "message:\"" << match[2] << "\"}" << endl;
 			}
 	}
 }
 
-string convertDateTime(regex **fileRegex, smatch match){
-	
+string convertDateTime(int regexformat, string match){
+	char buffer [20];
+	string year,month, date, hour, min, second;
+	string strDate = match;
+	switch(regexformat){
+		case 1:
+        		{
+            			year = strDate.substr(0,4);
+           			month = strDate.substr(5,2);
+            			date = strDate.substr(8,2);
 
+            			hour = strDate.substr(11,2);
+            			min = strDate.substr(14,2);
+            			second = strDate.substr(17,2);
 
-return "";
+ 				strDate = "";           			
+            			strDate.append(date).append("-").append(month).append("-").append(year).append(" ").append(hour).append(":").append(min).append(":").append(second);
+		
+	 			break;   
+
+			}	
+		case 2:
+			{
+				istringstream iss(strDate);
+			        vector<std::string> results((istream_iterator<string>(iss)),istream_iterator<string>());
+
+			        vector<string>::iterator it = results.begin();
+				
+            			month = results.at(1);
+            			month = ConvertToLowerCase(month);
+            			month = get_month_index(month);
+            			date = results.at(2);
+            			string hh_mm_ss = results.at(3);
+            			year = results.at(4);
+            			strDate = "";
+            			strDate.append(date).append("-").append(month).append("-").append(year).append(" ").append(hh_mm_ss) ;
+				break;
+			}
+		default:
+				cout << "Invalid Regex format for timestamp" << endl;
+				break;
+	}
+
+return strDate;
 }
+
+
+string ConvertToLowerCase(string strData)
+{
+    int i=0;
+    char *arr = new char [strData.length()+1];
+    strcpy (arr, strData.c_str());
+    while (arr[i])
+    {
+        arr[i]= tolower(arr[i]);
+        i++;
+    }
+    string res = arr;
+    return res;
+}
+
+string get_month_index(string name)
+{
+   map<string, string> months
+    {
+        { "jan", "01" },
+        { "feb", "02" },
+        { "mar", "03" },
+        { "apr", "04" },
+        { "may", "05" },
+        { "jun", "06" },
+        { "jul", "07" },
+        { "aug", "08" },
+        { "sep", "09" },
+        { "oct", "10" },
+        { "nov", "11" },
+        { "dec", "12" }
+    };
+
+    const auto iter = months.find( name );
+
+    if( iter != months.cend() )
+        return iter->second;
+    return "";
+}
+
+
 
 void parseLogFile(string file){
 	ifstream inlogfile(file);
@@ -105,7 +202,7 @@ void parseLogFile(string file){
 	   smatch match;
  	   getline(inlogfile,readLine);
 	   //Finding Matching Regex
-	   getMatchingRegex(&readLine, &fileRegex);
+	   getMatchingRegex(&file, &readLine, &fileRegex);
 
 	   while(true){
                	if(!getline(inlogfile,readLine) || inlogfile.eof()){
@@ -117,8 +214,15 @@ void parseLogFile(string file){
                 gpos=inlogfile.tellg();
 
 	   	//Write the output to a file   
-		writeToFile(&readLine, &fileRegex, &file);			
-		break;
+	   	auto start = high_resolution_clock::now();
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		writeToFile(&readLine, &fileRegex, &file);
+		auto stop = high_resolution_clock::now();			
+		std::chrono::duration<double, std::milli> elapsed = stop - start;
+//		cout << "Writing to file finished " << endl;
+//        	cout << "Elapsed time : " << elapsed.count() << " seconds" << endl;
+
+
 	   } 
 	}
 	inlogfile.close();
@@ -129,8 +233,8 @@ void parseLogFile(string file){
 vector<string> getLogFiles(){
 	ifstream config;
 	string bufLine;
-	config.open(configFile); 
- 	string logFilesstr;//Change to string
+	config.open(configFile);
+	string logFilesstr;
 	vector<string> files;
 
 
@@ -138,19 +242,17 @@ vector<string> getLogFiles(){
 	     cout << "Unable to Open File : " << configFile << endl;
 	     exit(EXIT_FAILURE);
 	}
-	while (getline(config, bufLine)){
+	while (!config.eof()){
+		getline(config, bufLine);
 		istringstream ss(bufLine);
-		if (bufLine.find('=') == string::npos){
-			cout << "Invalid entry in the  Config File" << endl;
-		}
-		else{
+		if (bufLine.find('=') != string::npos){
 		while(getline(ss, logFilesstr, CDELIMITER)){}
 	    }
+	}
 	    //Split the tokens
 	    stringstream logfilestream(logFilesstr);
 	    while(getline(logfilestream, bufLine, ','))
 		files.push_back(bufLine);
-	}
 	return files;
 }
 
@@ -169,14 +271,9 @@ int main(){
 	  	PerformParsing* Parsobj = new PerformParsing();
 	  	for (size_t i = 0; i < logfiles.size(); i++){	
 			if(logfiles[i].find(".log") != string::npos || logfiles[i].find(".txt") != string::npos ){
-			logFileCount ++ ;
-			cout << "Parsing Log File :  " << logfiles[i] << endl;
-			//cout << i+10 << endl;
-			threads.push_back(thread(&PerformParsing::parseLogFile,Parsobj, logfiles[i]));
-			//threads.push_back(t1);
-			//t1.detach(); //Look to wait for threads , Sleep
-			//this_thread::sleep_for(std::chrono::milliseconds(5000));	
-			//cout << i << endl;	
+				logFileCount ++ ;
+				cout << "Parsing Log File :  " << logfiles[i] << endl;
+				threads.push_back(thread(&PerformParsing::parseLogFile,Parsobj, logfiles[i]));
 			}
 		}
 		if(logFileCount == 0){
@@ -184,7 +281,6 @@ int main(){
 		} 
 	       	for(size_t i=0 ; i < threads.size(); i++){
 				if(threads[i].joinable()){
-					cout << "Joining threads " << endl;
 					threads[i].join();
 					}
 		} 
